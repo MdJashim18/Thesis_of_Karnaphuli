@@ -1,0 +1,94 @@
++------------------+       +------------------+       +------------------+
+|                  |       |                  |       |                  |
+|  ESP32 Gateway   | ----> |  Mosquitto       | ----> |  Python MQTT     |
+|  (Sensor Node)   |       |  (Windows)       |       |  Consumer        |
+|                  |       |  Port 1883       |       |  (paho-mqtt)     |
++------------------+       +------------------+       +------------------+
+                                                              |
+                                                              v
+                                                     +------------------+
+                                                     |                  |
+                                                     |  InfluxDB        |
+                                                     |  (Windows)       |
+                                                     |  Port 8086       |
+                                                     +------------------+
+                                                              |
+                                                              v
+                                                     +------------------+
+                                                     |                  |
+                                                     |  Dashboard /     |
+                                                     |  Flux Queries    |
+                                                     |                  |
+                                                     +------------------+
+
+
+
+
+karnaphuli-shm-month2/
+│
+├── README.md
+├── .gitignore
+├── .env
+├── requirements.txt
+│
+├── hardware/
+│   ├── wiring_diagram/
+│   │   ├── 01_esp32_pinout.png
+│   │   ├── 02_power_distribution.png
+│   │   ├── 03_dht22_esp32_schematic.png
+│   │   ├── 04_mpu6050_esp32_schematic.png
+│   │   ├── 05_water_sensor_esp32_schematic.png
+│   │   ├── 06_loadcell_hx711_esp32_schematic.png
+│   │   ├── 07_all_sensors_esp32_schematic.png
+│   │   ├── 08_sensor_node_block_diagram.png
+│   │   ├── 09_esp32_wifi_laptop_network.png
+│   │   ├── 10_mqtt_influxdb_pipeline.png
+│   │   └── 11_complete_month2_architecture.png
+│   ├── datasheets/
+│   └── photos/
+│
+├── firmware/
+│   ├── 01_blink/
+│   ├── 02_serial/
+│   ├── 03_dht22/
+│   ├── 04_i2c_scanner/
+│   ├── 05_mpu6050/
+│   ├── 06_water_sensor/
+│   ├── 07_loadcell/
+│   ├── 08_all_sensors/
+│   └── 09_mqtt_publisher/
+│       ├── 09_mqtt_publisher.ino
+│       ├── config.h
+│       ├── sensors.h
+│       └── mqtt_functions.h
+│
+├── mqtt/
+│   ├── mosquitto.conf
+│   └── passwordfile
+│
+├── python/
+│   ├── mqtt_consumer.py          # Main MQTT → InfluxDB script
+│   ├── config.py                 # MQTT/InfluxDB credentials
+│   ├── validate_data.py          # Data validation
+│   ├── calculate_calibration.py  # Calibration calculation
+│   └── export_data.py            # CSV export
+│
+├── database/
+│   └── queries/
+│       ├── all_data.flux
+│       ├── temperature.flux
+│       └── vibration.flux
+│
+├── data/
+│   ├── raw/
+│   ├── cleaned/
+│   ├── calibration/
+│   └── metadata/
+│
+└── documentation/
+    ├── python_setup_log.md
+    ├── mosquitto_windows_log.md
+    ├── influxdb_windows_log.md
+    ├── mqtt_consumer_log.md
+    ├── pipeline_test_log.md
+    └── month2_final_report.md
