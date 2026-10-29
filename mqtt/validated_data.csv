@@ -1,0 +1,1 @@
+_start,_stop,_time,_measurement,device_id,gateway_id,quality_flag,zone_id,accel_x,accel_y,accel_z,dht_valid,humidity,hx711_valid,load_kg,load_raw,mpu_valid,temperature,water_raw
