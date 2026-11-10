@@ -10,17 +10,20 @@ HX711 scale;
 // Calibration weight
 const float CAL_WEIGHT_G = 100.0;
 
-// Validation weight
-const float VAL_WEIGHT_G = 500.0;
+// Validation weights
+const float VAL_WEIGHTS[] = {
+  100.0, 200.0, 500.0, 1000.0
+};
 
+const int NUM_WEIGHTS = 4;
 const int NUM_TRIALS = 3;
-const int SAMPLES    = 20;
+const int SAMPLES = 20;
 
 float calibrationFactor = 1.0;
 
-float measured[NUM_TRIALS];
-float errorsG[NUM_TRIALS];
-float errorsPct[NUM_TRIALS];
+float measured[NUM_WEIGHTS][NUM_TRIALS];
+float errorsG[NUM_WEIGHTS][NUM_TRIALS];
+float errorsPct[NUM_WEIGHTS][NUM_TRIALS];
 
 void waitForEnter() {
   while (Serial.available()) Serial.read();
@@ -63,6 +66,9 @@ void setup() {
 
   // ---------- Step 1: Tare ----------
 
+  Serial.println();
+  Serial.println("=== STEP 1: TARE ===");
+
   Serial.println("Remove all weight. Keep platform still.");
   Serial.println("Press Enter to tare.");
 
@@ -74,6 +80,9 @@ void setup() {
   Serial.println("Tare complete.");
 
   // ---------- Step 2: Calibration ----------
+
+  Serial.println();
+  Serial.println("=== STEP 2: CALIBRATION ===");
 
   Serial.print("Place exactly ");
   Serial.print(CAL_WEIGHT_G, 1);
@@ -103,20 +112,18 @@ void setup() {
   Serial.println(scale.get_units(SAMPLES), 2);
 
   Serial.println();
-  Serial.println("=== 500 g Validation ===");
+  Serial.println("=== VALIDATION STARTED ===");
 
-  Serial.print("Weight to use for validation: ");
-  Serial.print(VAL_WEIGHT_G, 1);
-  Serial.println(" g");
-
-  Serial.println("Three validation trials will be performed.");
+  Serial.println("Validation weights: 100g, 200g, 500g, 1000g");
+  Serial.println("Three trials for each weight.");
 }
 
 void loop() {
 
+  static int weightIndex = 0;
   static int trial = 0;
 
-  if (trial >= NUM_TRIALS) {
+  if (weightIndex >= NUM_WEIGHTS) {
     printSummary();
 
     while (true) {
@@ -124,12 +131,23 @@ void loop() {
     }
   }
 
+  float targetWeight = VAL_WEIGHTS[weightIndex];
+
   Serial.println();
+  Serial.println("--------------------------------");
+
+  Serial.print("Validation Weight: ");
+  Serial.print(targetWeight, 1);
+  Serial.println(" g");
 
   Serial.print("Trial ");
   Serial.print(trial + 1);
+  Serial.print("/");
+  Serial.println(NUM_TRIALS);
 
-  Serial.println(": Empty the platform, then press Enter to tare.");
+  // ---------- Tare ----------
+
+  Serial.println("Remove all weight, then press Enter to tare.");
 
   waitForEnter();
 
@@ -141,10 +159,13 @@ void loop() {
 
   scale.tare(SAMPLES);
 
-  Serial.print("Place ");
-  Serial.print(VAL_WEIGHT_G, 1);
+  Serial.println("Tare complete.");
 
-  Serial.println(" g, wait until stable, then press Enter.");
+  // ---------- Measurement ----------
+
+  Serial.print("Place ");
+  Serial.print(targetWeight, 1);
+  Serial.println(" g. Wait until stable, then press Enter.");
 
   waitForEnter();
 
@@ -156,16 +177,21 @@ void loop() {
 
   float w = scale.get_units(SAMPLES);
 
-  float err = w - VAL_WEIGHT_G;
+  float err = w - targetWeight;
 
-  float pct = fabs(err) / VAL_WEIGHT_G * 100.0;
+  float pct = fabs(err) / targetWeight * 100.0;
 
-  measured[trial]  = w;
-  errorsG[trial]   = err;
-  errorsPct[trial] = pct;
+  measured[weightIndex][trial] = w;
+  errorsG[weightIndex][trial] = err;
+  errorsPct[weightIndex][trial] = pct;
+
+  // ---------- Display Result ----------
+
+  Serial.println();
+  Serial.println("Trial Result:");
 
   Serial.print("Known (g): ");
-  Serial.print(VAL_WEIGHT_G, 2);
+  Serial.print(targetWeight, 2);
 
   Serial.print(" | Measured (g): ");
   Serial.print(w, 2);
@@ -177,40 +203,24 @@ void loop() {
   Serial.println(pct, 2);
 
   trial++;
+
+  if (trial >= NUM_TRIALS) {
+    trial = 0;
+    weightIndex++;
+
+    Serial.println();
+    Serial.println("All trials for this weight completed.");
+  }
 }
 
 // ---------- Step 3: Summary ----------
 
 void printSummary() {
 
-  float sum = 0;
-  float sumErrPct = 0;
-
-  for (int i = 0; i < NUM_TRIALS; i++) {
-
-    sum += measured[i];
-
-    sumErrPct += errorsPct[i];
-  }
-
-  float mean = sum / NUM_TRIALS;
-
-  float var = 0;
-
-  for (int i = 0; i < NUM_TRIALS; i++) {
-
-    float d = measured[i] - mean;
-
-    var += d * d;
-  }
-
-  float sd = (NUM_TRIALS > 1)
-             ? sqrt(var / (NUM_TRIALS - 1))
-             : 0;
-
   Serial.println();
-
-  Serial.println("=== 500 g Validation Summary ===");
+  Serial.println("====================================");
+  Serial.println(" FOUR-WEIGHT VALIDATION SUMMARY");
+  Serial.println("====================================");
 
   Serial.print("Calibration factor: ");
   Serial.println(calibrationFactor, 6);
@@ -218,21 +228,74 @@ void printSummary() {
   Serial.print("Calibration weight (g): ");
   Serial.println(CAL_WEIGHT_G, 2);
 
-  Serial.print("Validation weight (g): ");
-  Serial.println(VAL_WEIGHT_G, 2);
+  for (int j = 0; j < NUM_WEIGHTS; j++) {
 
-  Serial.print("Mean measured (g): ");
-  Serial.println(mean, 3);
+    float target = VAL_WEIGHTS[j];
 
-  Serial.print("Std dev (g): ");
-  Serial.println(sd, 3);
+    float sum = 0;
+    float sumErrPct = 0;
 
-  Serial.print("Mean error (g): ");
-  Serial.println(mean - VAL_WEIGHT_G, 3);
+    for (int i = 0; i < NUM_TRIALS; i++) {
+      sum += measured[j][i];
+      sumErrPct += errorsPct[j][i];
+    }
 
-  Serial.print("Mean abs error (%): ");
-  Serial.println(sumErrPct / NUM_TRIALS, 3);
+    float mean = sum / NUM_TRIALS;
 
-  Serial.println("500 g validation completed.");
-  Serial.println("Record these results.");
+    float variance = 0;
+
+    for (int i = 0; i < NUM_TRIALS; i++) {
+      float d = measured[j][i] - mean;
+      variance += d * d;
+    }
+
+    float sd = sqrt(variance / (NUM_TRIALS - 1));
+
+    float meanError = mean - target;
+
+    float meanAbsError = sumErrPct / NUM_TRIALS;
+
+    Serial.println();
+    Serial.println("------------------------------------");
+
+    Serial.print("Validation Weight: ");
+    Serial.print(target, 2);
+    Serial.println(" g");
+
+    Serial.println("Individual Trials:");
+
+    for (int i = 0; i < NUM_TRIALS; i++) {
+
+      Serial.print("Trial ");
+      Serial.print(i + 1);
+
+      Serial.print(" | Measured: ");
+      Serial.print(measured[j][i], 3);
+
+      Serial.print(" g | Error: ");
+      Serial.print(errorsG[j][i], 3);
+
+      Serial.print(" g | Error: ");
+      Serial.print(errorsPct[j][i], 3);
+
+      Serial.println("%");
+    }
+
+    Serial.print("Mean measured (g): ");
+    Serial.println(mean, 3);
+
+    Serial.print("Std dev (g): ");
+    Serial.println(sd, 3);
+
+    Serial.print("Mean error (g): ");
+    Serial.println(meanError, 3);
+
+    Serial.print("Mean abs error (%): ");
+    Serial.println(meanAbsError, 3);
+  }
+
+  Serial.println();
+  Serial.println("====================================");
+  Serial.println("ALL VALIDATION TESTS COMPLETED");
+  Serial.println("====================================");
 }
