@@ -1,0 +1,5 @@
+Reference_Weight_g,Mean_Measured_g,Mean_Error_g,Mean_Absolute_Error_Percentage
+100,99.363,-0.637,0.637
+200,200.249,0.249,0.184
+500,501.252,1.252,0.25
+1000,861.954,-138.046,13.805

@@ -1,0 +1,14 @@
+column,status,count,percentage
+dht_valid,True,3483,100.0
+mpu_valid,True,3483,100.0
+hx711_valid,True,3480,99.91
+hx711_valid,False,3,0.09
+latency_valid,False,1754,50.36
+latency_valid,True,1729,49.64
+device_timestamp_valid,True,3396,97.5
+device_timestamp_valid,False,87,2.5
+latency_audit_valid,False,1754,50.36
+latency_audit_valid,True,1729,49.64
+load_calibrated,nan,1456,41.8
+load_calibrated,True,1068,30.66
+load_calibrated,False,959,27.53
